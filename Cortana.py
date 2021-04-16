@@ -1,4 +1,6 @@
 from chatterbot import ChatBot
+from ibm_watson import TextToSpeechV1
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 from chatterbot.trainers import ChatterBotCorpusTrainer
 import speech_recognition as sr
 import datetime
@@ -7,19 +9,14 @@ import webbrowser
 from gtts import gTTS
 import os
 import wolframalpha
-from GUI import gui
 import time
 from playsound import playsound
 import playsound
-from tkinter import *
-import tkinter as tk
-import tkinter.font as font
 import os.path
-from subprocess import call
 import requests
 import ctypes
 import bs4
-from secondary import add_to_playlist, remove, open_app, play_music, play_playlist, play_random, speak
+from secondary import add_to_playlist, remove, open_app, play_music, play_playlist, play_random, tts
 from os import listdir
 from os.path import isfile, join
 
@@ -27,16 +24,24 @@ os.system("")
 chatbot = ChatBot('Cortana')
 trainer = ChatterBotCorpusTrainer(chatbot)
 data = ""
+authenticator = IAMAuthenticator('IBM API')
+text_to_speech = TextToSpeechV1(
+        authenticator=authenticator
+    )
+
+text_to_speech.set_service_url('URL')
+
 
 def respond(output):
-    num=0
     print(output)
-    num += 1
-    response=gTTS(text=output, lang='hi')
-    file = str(num)+".mp3"
-    response.save(file)
-    playsound.playsound(file, True)
-    os.remove(file)
+
+    with open('text.mp3', 'wb') as audio_file:
+        audio_file.write(
+            text_to_speech.synthesize(output, voice='en-GB_CharlotteV3Voice',
+                                      accept='audio/mp3').get_result().content)
+
+    playsound.playsound('text.mp3')
+    os.remove("text.mp3")
 
 def talk():
     input = sr.Recognizer()
@@ -87,7 +92,7 @@ def calc(text):
             text = text.replace('calculator', '')
 
         question = text
-        app_id = "API id"
+        app_id = "WOLFRAM ALPHA API"
         client = wolframalpha.Client(app_id)
         res = client.query(question)
         answer = next(res.results).text
@@ -118,11 +123,14 @@ if __name__ == '__main__':
             date()
             speak = False
 
-        elif "calculate" in text or "calculator" in text:
-            calc(text)
-            speak = False
+        numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+        for i in numbers:
+            if i in text:
+                calc(text)
+                speak = False
+                break
 
-        elif "add song" in text or "add track" in text:
+        if "add song" in text or "add track" in text:
             respond("[Finding track....]")
             add_to_playlist(text)
             speak = False
@@ -178,6 +186,14 @@ if __name__ == '__main__':
             speak = False
             respond("locking the device")
             ctypes.windll.user32.LockWorkStation()
+
+        if speak == True:
+            try:
+                output = chatbot.get_response(text)
+            except:
+                pass
+            respond(str(output))
+        
 
 
 
