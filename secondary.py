@@ -4,7 +4,6 @@ from gtts import gTTS
 import os
 from pytube import YouTube
 from playsound import playsound
-from pathlib import Path
 import vlc
 import re, requests, subprocess, urllib.parse, urllib.request
 from bs4 import BeautifulSoup
@@ -13,16 +12,28 @@ import os.path
 from os import path
 import random
 import webbrowser
+from ibm_watson import TextToSpeechV1
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 
 os.system("")
 chatbot = ChatBot('Cortana')
 trainer = ChatterBotCorpusTrainer(chatbot)
+authenticator = IAMAuthenticator('API')
+text_to_speech = TextToSpeechV1(
+        authenticator=authenticator
+    )
 
-def tts(inp):
-    speech = gTTS(text=str(inp), lang='hi', slow=False)
-    print(inp)
-    speech.save("text.mp3")
-    playsound("text.mp3")
+text_to_speech.set_service_url('URL')
+
+def tts(output):
+    print(output)
+
+    with open('text.mp3', 'wb') as audio_file:
+        audio_file.write(
+            text_to_speech.synthesize(output, voice='en-GB_CharlotteV3Voice',
+                                      accept='audio/mp3').get_result().content)
+
+    playsound('text.mp3')
     os.remove("text.mp3")
 
 def moment(text):
@@ -183,6 +194,7 @@ def play_music(text, onlyfiles):
     exam = exam.replace(".", "")
     exam = exam.replace(",", "")
     exam = exam.replace("/", "")
+    exam = exam.replace(":", "")
     exam = exam.replace("|", "")
     exam = exam.replace("'", "")
     exam = exam + ".mp3"
@@ -289,6 +301,9 @@ def play_random():
     if "stop" in data:
         p.stop()
         tts(inp="track has ended")
+
+
+
 
 
 
